@@ -144,6 +144,16 @@
         </div>
       </div>
       <div class="section">
+        <div class="section-label">Minimum Remaining Balance</div>
+        <div class="input-group">
+          <div class="input-label">Balance that must stay in account</div>
+          <div class="input-row">
+            <span class="currency-symbol">$</span>
+            <input class="calc-input" id="minBalance" type="number" inputmode="decimal" value="506" placeholder="506" oninput="calculate()" />
+          </div>
+        </div>
+      </div>
+      <div class="section">
         <div class="section-label">Calculate From</div>
         <div class="two-col">
           <div class="input-group">
@@ -267,7 +277,7 @@
       if (hasReceive) { z = rVal; x = z / 0.8; y = x * 0.2; }
       else if (hasWithdrawal) { x = wVal; y = x * 0.2; z = x * 0.8; }
       const hasValues = x > 0;
-      const MIN_BALANCE = 506;
+      const MIN_BALANCE = parseFloat(document.getElementById('minBalance').value) || 0;
       const maxWithdrawal = Math.max(0, assets - MIN_BALANCE);
       const isOverLimit = hasValues && x > maxWithdrawal;
       const effectiveX = isOverLimit ? maxWithdrawal : x;
