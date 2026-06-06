@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="QVSE Calculator"/>
+  <meta name="theme-color" content="#0a0a0a"/>
+  <title>QVSE Calculator</title>
+
+  <!-- Web App Manifest (inline via JS blob) -->
+  <script>
+    const manifest = {
+      name: "QVSE Calculator",
+      short_name: "QVSE Calculator",
+      description: "Withdrawal breakdown calculator",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#0a0a0a",
+      theme_color: "#0a0a0a",
+      orientation: "portrait",
+      icons: [
+        {
+          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230a0a0a'/%3E%3Ccircle cx='40' cy='96' r='8' fill='%23c9a84c'/%3E%3Ccircle cx='152' cy='96' r='8' fill='%23c9a84c'/%3E%3Ctext x='96' y='110' font-family='Georgia,serif' font-size='52' font-weight='700' fill='%23f0ebe0' text-anchor='middle'%3EQVSE%3C/text%3E%3C/svg%3E",
+          sizes: "192x192",
+          type: "image/svg+xml"
+        },
+        {
+          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230a0a0a'/%3E%3Ccircle cx='80' cy='256' r='20' fill='%23c9a84c'/%3E%3Ccircle cx='432' cy='256' r='20' fill='%23c9a84c'/%3E%3Ctext x='256' y='290' font-family='Georgia,serif' font-size='130' font-weight='700' fill='%23f0ebe0' text-anchor='middle'%3EQVSE%3C/text%3E%3C/svg%3E",
+          sizes: "512x512",
+          type: "image/svg+xml"
+        }
+      ]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blob);
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = manifestURL;
+    document.currentScript.parentNode.appendChild(link);
+  </script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; min-height: 100dvh; background: #0a0a0a; display: flex; align-items: center; justify-content: center; font-family: 'Georgia', serif; padding: 24px 16px; }
+    .calc-wrapper { width: 100%; max-width: 520px; }
+    .header { margin-bottom: 36px; text-align: center; }
+    .logo-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; }
+    .logo-dot { width: 8px; height: 8px; background: #c9a84c; border-radius: 50%; }
+    .title { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; color: #f0ebe0; letter-spacing: 0.08em; }
+    .subtitle { font-family: 'DM Mono', monospace; font-size: 11px; color: #5a5040; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 4px; }
+    .card { background: #111008; border: 1px solid #2a2418; border-radius: 2px; overflow: hidden; }
+    .section { padding: 24px 28px; border-bottom: 1px solid #1e1a12; }
+    .section-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: #5a5040; margin-bottom: 14px; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
+    .input-label { font-family: 'DM Mono', monospace; font-size: 11px; color: #7a6e58; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .input-row { display: flex; align-items: center; background: #0e0c07; border: 1px solid #2a2418; border-radius: 2px; transition: border-color 0.2s; }
+    .input-row:focus-within { border-color: #c9a84c; }
+    .currency-symbol { font-family: 'DM Mono', monospace; font-size: 14px; color: #5a5040; padding: 0 12px; }
+    .calc-input { flex: 1; background: transparent; border: none; outline: none; font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; color: #f0ebe0; padding: 14px 12px 14px 0; width: 100%; -webkit-appearance: none; }
+    .calc-input::placeholder { color: #2e2a20; }
+    .calc-input.active-field { color: #c9a84c; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .asset-bar-container { margin-top: 14px; background: #0e0c07; border: 1px solid #1e1a12; border-radius: 2px; height: 6px; overflow: hidden; }
+    .asset-bar-fill { height: 100%; background: linear-gradient(90deg, #c9a84c, #e8c96a); border-radius: 2px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); width: 0%; }
+    .asset-bar-fill.overdrawn { background: linear-gradient(90deg, #8b2222, #c43030); width: 100% !important; }
+    .asset-meta { display: flex; justify-content: space-between; margin-top: 8px; }
+    .asset-meta-item { font-family: 'DM Mono', monospace; font-size: 10px; color: #4a4030; letter-spacing: 0.1em; }
+    .asset-meta-item span { color: #7a6e58; }
+    .breakdown-grid { display: grid; gap: 12px; }
+    .breakdown-row { display: flex; align-items: center; gap: 16px; opacity: 0.35; transition: opacity 0.3s; }
+    .breakdown-row.active { opacity: 1; }
+    .breakdown-badge { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; padding: 4px 10px; border-radius: 2px; min-width: 60px; text-align: center; font-weight: 500; }
+    .badge-x { background: #1a1610; border: 1px solid #3a3020; color: #c9a84c; }
+    .badge-y { background: #1a1010; border: 1px solid #3a2020; color: #c44; }
+    .badge-z { background: #0e1a10; border: 1px solid #1a3020; color: #4a9; }
+    .breakdown-info { flex: 1; }
+    .breakdown-name { font-family: 'Playfair Display', serif; font-size: 13px; color: #9a8e78; }
+    .breakdown-desc { font-family: 'DM Mono', monospace; font-size: 10px; color: #4a4030; letter-spacing: 0.08em; margin-top: 1px; }
+    .breakdown-value { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; text-align: right; }
+    .value-x { color: #c9a84c; }
+    .value-y { color: #c44; }
+    .value-z { color: #4a9; }
+    .value-empty { color: #2e2a20; }
+    .divider-line { height: 1px; background: #1e1a12; margin: 4px 0; }
+    .remaining-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px; background: #0d0b06; }
+    .remaining-label { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #5a5040; }
+    .remaining-value { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; color: #f0ebe0; transition: color 0.3s; }
+    .remaining-value.overdrawn { color: #c43030; }
+    .overdrawn-warning { font-family: 'DM Mono', monospace; font-size: 10px; color: #8b3030; text-align: center; padding: 10px 28px; background: #100808; border-top: 1px solid #2a1010; letter-spacing: 0.12em; display: none; }
+    .overdrawn-warning.visible { display: block; }
+    .clear-btn { width: 100%; padding: 14px; background: transparent; border: 1px solid #2a2418; border-top: none; color: #4a4030; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+    .clear-btn:hover, .clear-btn:active { color: #c9a84c; background: #0e0c07; }
+
+    /* Install banner */
+    #installBanner { display: none; align-items: center; justify-content: space-between; background: #1a1610; border: 1px solid #3a3020; border-radius: 2px; padding: 12px 16px; margin-bottom: 16px; gap: 12px; }
+    #installBanner.visible { display: flex; }
+    .install-text { font-family: 'DM Mono', monospace; font-size: 11px; color: #9a8e78; letter-spacing: 0.1em; }
+    .install-btn { font-family: 'DM Mono', monospace; font-size: 11px; background: #c9a84c; color: #0a0a0a; border: none; padding: 8px 14px; border-radius: 2px; cursor: pointer; letter-spacing: 0.12em; font-weight: 500; white-space: nowrap; }
+    .dismiss-btn { font-family: 'DM Mono', monospace; font-size: 11px; background: transparent; color: #4a4030; border: none; cursor: pointer; padding: 4px; }
+
+    @media (max-width: 480px) {
+      .two-col { grid-template-columns: 1fr; }
+      .title { font-size: 22px; }
+      .section { padding: 20px 18px; }
+      .remaining-row { padding: 14px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="calc-wrapper">
+
+    <!-- Install to Home Screen Banner -->
+    <div id="installBanner">
+      <div class="install-text">📲 Add QVSE to your home screen</div>
+      <button class="install-btn" onclick="installApp()">INSTALL</button>
+      <button class="dismiss-btn" onclick="dismissBanner()">✕</button>
+    </div>
+
+    <div class="header">
+      <div class="logo-row">
+        <div class="logo-dot"></div>
+        <h1 class="title">QVSE</h1>
+        <div class="logo-dot"></div>
+      </div>
+      <p class="subtitle">Withdrawal Breakdown Calculator</p>
+    </div>
+
+    <div class="card">
+      <div class="section">
+        <div class="section-label">Total Asset Balance</div>
+        <div class="input-row">
+          <span class="currency-symbol">$</span>
+          <input class="calc-input" id="totalAssets" type="number" inputmode="decimal" value="250000" placeholder="0.00" oninput="calculate()" />
+        </div>
+        <div class="asset-bar-container"><div class="asset-bar-fill" id="assetBar"></div></div>
+        <div class="asset-meta">
+          <div class="asset-meta-item">WITHDRAWAL <span id="withdrawalPct">0.0%</span></div>
+          <div class="asset-meta-item">REMAINING <span id="remainingPct">100.0%</span></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-label">Minimum Remaining Balance</div>
+        <div class="input-group">
+          <div class="input-label">Balance that must stay in account</div>
+          <div class="input-row">
+            <span class="currency-symbol">$</span>
+            <input class="calc-input" id="minBalance" type="number" inputmode="decimal" value="506" placeholder="506" oninput="calculate()" />
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-label">Calculate From</div>
+        <div class="two-col">
+          <div class="input-group">
+            <div class="input-label">I want to receive (Z)</div>
+            <div class="input-row">
+              <span class="currency-symbol">$</span>
+              <input class="calc-input" id="receiveInput" type="number" inputmode="decimal" placeholder="0.00" oninput="handleReceive()" />
+            </div>
+          </div>
+          <div class="input-group">
+            <div class="input-label">Withdrawal total (X)</div>
+            <div class="input-row">
+              <span class="currency-symbol">$</span>
+              <input class="calc-input" id="withdrawalInput" type="number" inputmode="decimal" placeholder="0.00" oninput="handleWithdrawal()" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-label">Breakdown</div>
+        <div class="breakdown-grid">
+          <div class="breakdown-row" id="rowX">
+            <div class="breakdown-badge badge-x">X · 100%</div>
+            <div class="breakdown-info">
+              <div class="breakdown-name">Withdrawal Amount</div>
+              <div class="breakdown-desc">Total amount withdrawn</div>
+            </div>
+            <div class="breakdown-value value-empty" id="valX">—</div>
+          </div>
+          <div class="divider-line"></div>
+          <div class="breakdown-row" id="rowY">
+            <div class="breakdown-badge badge-y">Y · 20%</div>
+            <div class="breakdown-info">
+              <div class="breakdown-name">Commission</div>
+              <div class="breakdown-desc">Fee deducted (20% of X)</div>
+            </div>
+            <div class="breakdown-value value-empty" id="valY">—</div>
+          </div>
+          <div class="divider-line"></div>
+          <div class="breakdown-row" id="rowZ">
+            <div class="breakdown-badge badge-z">Z · 80%</div>
+            <div class="breakdown-info">
+              <div class="breakdown-name">You Receive</div>
+              <div class="breakdown-desc">Net payout (80% of X)</div>
+            </div>
+            <div class="breakdown-value value-empty" id="valZ">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="remaining-row">
+        <div class="remaining-label">Remaining Balance</div>
+        <div class="remaining-value" id="remainingVal">$250,000.00</div>
+      </div>
+      <div class="overdrawn-warning" id="overdrawWarning"></div>
+      <button class="clear-btn" onclick="clearFields()">Clear Fields</button>
+    </div>
+  </div>
+
+  <script>
+    // ── Service Worker (enables PWA install prompt) ──
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', e => self.skipWaiting());
+        self.addEventListener('activate', e => clients.claim());
+        self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response(''))));
+      `;
+      const swBlob = new Blob([swCode], { type: 'application/javascript' });
+      const swURL = URL.createObjectURL(swBlob);
+      navigator.serviceWorker.register(swURL).catch(() => {});
+    }
+
+    // ── Install prompt ──
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBanner').classList.add('visible');
+    });
+
+    function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          dismissBanner();
+        });
+      }
+    }
+
+    function dismissBanner() {
+      document.getElementById('installBanner').classList.remove('visible');
+    }
+
+    // ── Calculator logic ──
+    const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    let activeInput = null;
+
+    function handleReceive() {
+      activeInput = 'receive';
+      document.getElementById('withdrawalInput').value = '';
+      document.getElementById('withdrawalInput').classList.remove('active-field');
+      document.getElementById('receiveInput').classList.add('active-field');
+      calculate();
+    }
+
+    function handleWithdrawal() {
+      activeInput = 'withdrawal';
+      document.getElementById('receiveInput').value = '';
+      document.getElementById('receiveInput').classList.remove('active-field');
+      document.getElementById('withdrawalInput').classList.add('active-field');
+      calculate();
+    }
+
+    function calculate() {
+      const assets = parseFloat(document.getElementById('totalAssets').value) || 0;
+      let x = 0, y = 0, z = 0;
+      const rVal = parseFloat(document.getElementById('receiveInput').value);
+      const wVal = parseFloat(document.getElementById('withdrawalInput').value);
+      const hasReceive = activeInput === 'receive' && !isNaN(rVal) && rVal > 0;
+      const hasWithdrawal = activeInput === 'withdrawal' && !isNaN(wVal) && wVal > 0;
+      if (hasReceive) { z = rVal; x = z / 0.8; y = x * 0.2; }
+      else if (hasWithdrawal) { x = wVal; y = x * 0.2; z = x * 0.8; }
+      const hasValues = x > 0;
+      const MIN_BALANCE = parseFloat(document.getElementById('minBalance').value) || 0;
+      const maxWithdrawal = Math.max(0, assets - MIN_BALANCE);
+      const isOverLimit = hasValues && x > maxWithdrawal;
+      const effectiveX = isOverLimit ? maxWithdrawal : x;
+      const effectiveY = effectiveX * 0.2;
+      const effectiveZ = effectiveX * 0.8;
+      const remaining = assets - effectiveX;
+      const wPct = assets > 0 ? (effectiveX / assets * 100) : 0;
+      const rPct = assets > 0 ? (remaining / assets * 100) : 100;
+      ['X','Y','Z'].forEach(r => document.getElementById('row'+r).classList.toggle('active', hasValues));
+      const vx = document.getElementById('valX'), vy = document.getElementById('valY'), vz = document.getElementById('valZ');
+      if (hasValues) {
+        vx.textContent = '$'+fmt(effectiveX); vx.className = 'breakdown-value value-x';
+        vy.textContent = '$'+fmt(effectiveY); vy.className = 'breakdown-value value-y';
+        vz.textContent = '$'+fmt(effectiveZ); vz.className = 'breakdown-value value-z';
+      } else {
+        vx.textContent = vy.textContent = vz.textContent = '—';
+        vx.className = vy.className = vz.className = 'breakdown-value value-empty';
+      }
+      const bar = document.getElementById('assetBar');
+      bar.classList.toggle('overdrawn', isOverLimit);
+      bar.style.width = hasValues ? Math.min(100, wPct)+'%' : '0%';
+      document.getElementById('withdrawalPct').textContent = hasValues ? wPct.toFixed(1)+'%' : '0.0%';
+      document.getElementById('remainingPct').textContent = hasValues ? rPct.toFixed(1)+'%' : '100.0%';
+      const rv = document.getElementById('remainingVal');
+      rv.textContent = hasValues ? '$'+fmt(remaining) : '$'+fmt(assets);
+      rv.classList.toggle('overdrawn', isOverLimit);
+      const warn = document.getElementById('overdrawWarning');
+      warn.classList.toggle('visible', isOverLimit);
+      if (isOverLimit) warn.textContent = '⚠ Min remaining balance is $506.00 — withdrawal capped at $'+fmt(maxWithdrawal);
+    }
+
+    function clearFields() {
+      document.getElementById('receiveInput').value = '';
+      document.getElementById('withdrawalInput').value = '';
+      document.getElementById('receiveInput').classList.remove('active-field');
+      document.getElementById('withdrawalInput').classList.remove('active-field');
+      activeInput = null;
+      calculate();
+    }
+
+    calculate();
+  </script>
+</body>
+</html>
